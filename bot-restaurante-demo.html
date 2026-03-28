@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bot WhatsApp — Restaurante Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --verde: #25D366;
+    --verde-dark: #128C7E;
+    --verde-light: #DCF8C6;
+    --bg-chat: #ECE5DD;
+    --bg-msg-out: #DCF8C6;
+    --bg-msg-in: #ffffff;
+    --text-dark: #111B21;
+    --text-muted: #667781;
+    --laranja: #FF6B2C;
+    --amarelo: #FFB800;
+    --creme: #FFF8F0;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #0a0a0a;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: white;
+  }
+
+  /* HERO */
+  .hero {
+    text-align: center;
+    margin-bottom: 48px;
+    max-width: 600px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(37, 211, 102, 0.15);
+    border: 1px solid rgba(37, 211, 102, 0.3);
+    color: #25D366;
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 100px;
+    margin-bottom: 20px;
+  }
+
+  .badge::before { content: "●"; font-size: 8px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(28px, 5vw, 48px);
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, #fff 0%, #aaa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero h1 span {
+    background: linear-gradient(135deg, #25D366, #128C7E);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero p {
+    color: #888;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  /* LAYOUT PRINCIPAL */
+  .main-layout {
+    display: flex;
+    gap: 40px;
+    align-items: flex-start;
+    width: 100%;
+    max-width: 900px;
+  }
+
+  /* PHONE */
+  .phone-wrap {
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .phone {
+    width: 320px;
+    background: #1c1c1c;
+    border-radius: 40px;
+    padding: 12px;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.08),
+      0 40px 80px rgba(0,0,0,0.6),
+      0 0 60px rgba(37,211,102,0.08);
+    position: relative;
+  }
+
+  .phone-notch {
+    width: 80px;
+    height: 24px;
+    background: #111;
+    border-radius: 12px;
+    margin: 0 auto 8px;
+  }
+
+  .phone-screen {
+    background: var(--bg-chat);
+    border-radius: 28px;
+    overflow: hidden;
+    height: 560px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* WHATSAPP HEADER */
+  .wa-header {
+    background: var(--verde-dark);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .wa-avatar {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--laranja), var(--amarelo));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .wa-info { flex: 1; }
+  .wa-name { color: white; font-weight: 600; font-size: 14px; }
+  .wa-status { color: rgba(255,255,255,0.7); font-size: 11px; }
+
+  /* CHAT AREA */
+  .chat-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    scroll-behavior: smooth;
+  }
+
+  .chat-area::-webkit-scrollbar { width: 4px; }
+  .chat-area::-webkit-scrollbar-track { background: transparent; }
+  .chat-area::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 2px; }
+
+  .date-divider {
+    text-align: center;
+    margin: 8px 0;
+  }
+
+  .date-divider span {
+    background: rgba(225,221,216,0.9);
+    color: #54656F;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 8px;
+  }
+
+  /* MENSAGENS */
+  .msg {
+    display: flex;
+    flex-direction: column;
+    max-width: 82%;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+
+  .msg.visible { opacity: 1; transform: translateY(0); }
+
+  .msg.out { align-self: flex-end; }
+  .msg.in { align-self: flex-start; }
+
+  .msg-bubble {
+    padding: 7px 10px 5px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--text-dark);
+    position: relative;
+    word-wrap: break-word;
+  }
+
+  .msg.out .msg-bubble {
+    background: var(--bg-msg-out);
+    border-top-right-radius: 3px;
+  }
+
+  .msg.in .msg-bubble {
+    background: var(--bg-msg-in);
+    border-top-left-radius: 3px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+
+  .msg-time {
+    font-size: 10px;
+    color: var(--text-muted);
+    align-self: flex-end;
+    margin-top: 2px;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .check { color: #53BDEB; font-size: 12px; }
+
+  /* TYPING */
+  .typing-indicator {
+    display: none;
+    align-self: flex-start;
+    background: white;
+    border-radius: 10px;
+    border-top-left-radius: 3px;
+    padding: 10px 14px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+
+  .typing-indicator.show { display: flex; align-items: center; gap: 4px; }
+
+  .dot {
+    width: 7px; height: 7px;
+    background: #90949c;
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+  }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-5px)} }
+
+  /* INPUT BAR */
+  .wa-input {
+    background: var(--bg-chat);
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    border-top: 1px solid rgba(0,0,0,0.06);
+  }
+
+  .wa-input-field {
+    flex: 1;
+    background: white;
+    border: none;
+    border-radius: 24px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text-dark);
+    outline: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  .wa-send {
+    width: 38px; height: 38px;
+    background: var(--verde);
+    border: none;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .wa-send:hover { background: var(--verde-dark); }
+  .wa-send svg { width: 18px; height: 18px; fill: white; }
+
+  /* QUICK REPLIES */
+  .quick-replies {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 10px;
+    background: var(--bg-chat);
+  }
+
+  .qr-btn {
+    background: white;
+    border: 1.5px solid var(--verde);
+    color: var(--verde-dark);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .qr-btn:hover {
+    background: var(--verde);
+    color: white;
+  }
+
+  /* PAINEL LATERAL */
+  .side-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .panel-card {
+    background: #161616;
+    border: 1px solid #2a2a2a;
+    border-radius: 16px;
+    padding: 20px;
+  }
+
+  .panel-card h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #555;
+    margin-bottom: 14px;
+  }
+
+  /* FUNCIONALIDADES */
+  .feature-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .feature-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .feature-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+
+  .feature-icon.green { background: rgba(37,211,102,0.15); }
+  .feature-icon.orange { background: rgba(255,107,44,0.15); }
+  .feature-icon.yellow { background: rgba(255,184,0,0.15); }
+  .feature-icon.blue { background: rgba(0,150,255,0.15); }
+
+  .feature-text { flex: 1; }
+  .feature-name { font-size: 13px; font-weight: 500; color: #ddd; margin-bottom: 2px; }
+  .feature-desc { font-size: 12px; color: #666; line-height: 1.4; }
+
+  /* PREÇO */
+  .price-block {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .price-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: #1e1e1e;
+  }
+
+  .price-label { font-size: 13px; color: #aaa; }
+  .price-value { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: white; }
+  .price-value.green { color: #25D366; }
+
+  .price-row.highlight {
+    background: linear-gradient(135deg, rgba(37,211,102,0.15), rgba(18,140,126,0.1));
+    border: 1px solid rgba(37,211,102,0.2);
+  }
+
+  /* ABORDAGEM */
+  .script-box {
+    background: #1e1e1e;
+    border-left: 3px solid var(--verde);
+    border-radius: 0 10px 10px 0;
+    padding: 14px 16px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #ccc;
+    font-style: italic;
+  }
+
+  .script-box strong { color: white; font-style: normal; }
+
+  /* BOTÃO REINICIAR */
+  .restart-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: transparent;
+    border: 1px solid #333;
+    color: #666;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 10px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .restart-btn:hover { border-color: var(--verde); color: var(--verde); }
+
+  @media (max-width: 720px) {
+    .main-layout { flex-direction: column; align-items: center; }
+    .phone { width: 290px; }
+    .phone-screen { height: 500px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="badge">Demo ao vivo</div>
+  <h1>Bot WhatsApp<br><span>para Restaurantes</span></h1>
+  <p>Interaja com a demonstração abaixo e veja como o bot atende seus clientes automaticamente, 24 horas por dia.</p>
+</div>
+
+<div class="main-layout">
+
+  <!-- TELEFONE -->
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="phone-notch"></div>
+      <div class="phone-screen">
+
+        <div class="wa-header">
+          <div class="wa-avatar">🍔</div>
+          <div class="wa-info">
+            <div class="wa-name">Burguer do Zé</div>
+            <div class="wa-status">online agora</div>
+          </div>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="rgba(255,255,255,0.7)"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+        </div>
+
+        <div class="chat-area" id="chatArea">
+          <div class="date-divider"><span>Hoje</span></div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+
+        <div class="quick-replies" id="quickReplies"></div>
+
+        <div class="wa-input">
+          <input class="wa-input-field" id="userInput" placeholder="Digite uma mensagem..." readonly>
+          <button class="wa-send" id="sendBtn">
+            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- PAINEL LATERAL -->
+  <div class="side-panel">
+
+    <div class="panel-card">
+      <h3>O que esse bot faz</h3>
+      <div class="feature-list">
+        <div class="feature-item">
+          <div class="feature-icon green">📋</div>
+          <div class="feature-text">
+            <div class="feature-name">Cardápio interativo</div>
+            <div class="feature-desc">Exibe categorias, itens e preços automaticamente</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon orange">🛒</div>
+          <div class="feature-text">
+            <div class="feature-name">Recebe pedidos</div>
+            <div class="feature-desc">Anota o pedido, confirma e encaminha pra cozinha</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon yellow">📍</div>
+          <div class="feature-text">
+            <div class="feature-name">Endereço e entrega</div>
+            <div class="feature-desc">Informa área de entrega, taxa e tempo estimado</div>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon blue">🕐</div>
+          <div class="feature-text">
+            <div class="feature-name">Atendimento 24h</div>
+            <div class="feature-desc">Responde fora do horário e avisa quando abre</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <h3>Investimento</h3>
+      <div class="price-block">
+        <div class="price-row">
+          <span class="price-label">Implantação</span>
+          <span class="price-value">R$ 600</span>
+        </div>
+        <div class="price-row highlight">
+          <span class="price-label">Mensalidade</span>
+          <span class="price-value green">R$ 280/mês</span>
+        </div>
+        <div class="price-row">
+          <span class="price-label">Retorno estimado</span>
+          <span class="price-value">+R$ 1.500/mês</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel-card">
+      <h3>Script de abordagem</h3>
+      <div class="script-box">
+        <strong>"Oi [nome]!</strong> Vi que vocês atendem bastante pelo WhatsApp. Desenvolvo um assistente automático que manda o cardápio, recebe pedidos e responde clientes <strong>24h sem você precisar ficar no celular.</strong> Posso mostrar uma demo em 5 minutos?"
+      </div>
+      <button class="restart-btn" onclick="restartDemo()">↺ Reiniciar demonstração</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const now = () => {
+  const d = new Date();
+  return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+};
+
+const conversation = [
+  {
+    trigger: null,
+    in: null,
+    out: `Olá! 👋 Seja bem-vindo ao *Burguer do Zé*! 🍔\n\nSou o assistente virtual do restaurante. Como posso te ajudar?`,
+    replies: ['📋 Ver cardápio', '📍 Endereço e entrega', '🕐 Horário de funcionamento', '🛒 Fazer pedido']
+  },
+  {
+    trigger: '📋 Ver cardápio',
+    in: '📋 Ver cardápio',
+    out: `Aqui está nosso cardápio! 😋\n\n*🍔 HAMBÚRGUERES*\n• Classic Burguer — R$ 28\n• Duplo Bacon — R$ 36\n• Frango Crispy — R$ 30\n• Veggie Burger — R$ 27\n\n*🍟 ACOMPANHAMENTOS*\n• Batata frita — R$ 14\n• Onion rings — R$ 16\n• Salada — R$ 12\n\n*🥤 BEBIDAS*\n• Refrigerante — R$ 7\n• Suco natural — R$ 10\n• Milk-shake — R$ 18\n\nQuer fazer seu pedido? 👇`,
+    replies: ['🛒 Quero pedir agora', '📍 Tem entrega?', '⬅️ Voltar']
+  },
+  {
+    trigger: '🛒 Fazer pedido',
+    in: '🛒 Fazer pedido',
+    out: `Ótimo! Vamos montar seu pedido. 🛒\n\nPrimeiro, você prefere:\n*Retirar no local* 🏪 ou *Delivery* 🛵?`,
+    replies: ['🛵 Delivery', '🏪 Retirar no local']
+  },
+  {
+    trigger: '🛵 Delivery',
+    in: '🛵 Delivery',
+    out: `Perfeito! Entregamos em toda a região. 🛵\n\n*Taxa de entrega:* R$ 5 a R$ 12\n*Tempo estimado:* 35–50 min\n\nMe diz o que você quer pedir e seu endereço completo que já anoto tudo! 😊`,
+    replies: ['1 Duplo Bacon + Batata + Coca', '📋 Ver cardápio antes']
+  },
+  {
+    trigger: '1 Duplo Bacon + Batata + Coca',
+    in: '1 Duplo Bacon + Batata + Coca',
+    out: `Anotado! Deixa eu confirmar seu pedido: ✅\n\n*1x* Duplo Bacon — R$ 36\n*1x* Batata frita — R$ 14\n*1x* Refrigerante — R$ 7\n➕ Taxa de entrega — R$ 7\n\n*Total: R$ 64* 💰\n\nForma de pagamento:\n💳 Cartão na entrega\n💵 Dinheiro\n📱 Pix`,
+    replies: ['💳 Cartão na entrega', '📱 Pix']
+  },
+  {
+    trigger: '📱 Pix',
+    in: '📱 Pix',
+    out: `Show! Pedido confirmado via Pix! 🎉\n\n*Chave Pix:* 11 99999-0000\n\nApós o pagamento, seu pedido entra na fila automaticamente. ⏱️\n\n*Tempo estimado:* 40 minutos\n\nVou te avisar quando o entregador sair! Qualquer dúvida é só chamar. 😊`,
+    replies: ['😊 Obrigado!', '🏠 Início']
+  },
+  {
+    trigger: '📍 Endereço e entrega',
+    in: '📍 Endereço e entrega',
+    out: `📍 *Nossa localização:*\nRua das Acácias, 142 — Centro\n\n🗺️ *Área de entrega:*\nAtendemos até 8km de distância\n\n🛵 *Taxas:*\n• Até 3km — R$ 5\n• 3 a 6km — R$ 8\n• 6 a 8km — R$ 12\n\n*Tempo médio:* 35–50 minutos`,
+    replies: ['🛒 Quero pedir', '🕐 Ver horários', '⬅️ Voltar']
+  },
+  {
+    trigger: '🕐 Horário de funcionamento',
+    in: '🕐 Horário de funcionamento',
+    out: `🕐 *Nosso horário:*\n\n*Segunda a Sexta*\n11h às 14h (almoço)\n18h às 23h (jantar)\n\n*Sábado e Domingo*\n11h às 00h\n\nEstamos *abertos agora!* 🟢\n\nAproveita e faz seu pedido 😄`,
+    replies: ['🛒 Fazer pedido', '📋 Ver cardápio']
+  },
+  {
+    trigger: '😊 Obrigado!',
+    in: '😊 Obrigado!',
+    out: `De nada! Obrigado pela preferência! 🙏🍔\n\nQualquer coisa é só chamar. Bom apetite! 😋`,
+    replies: ['🏠 Início']
+  },
+  {
+    trigger: '⬅️ Voltar',
+    in: null,
+    out: `Olá! 👋 Seja bem-vindo ao *Burguer do Zé*! 🍔\n\nSou o assistente virtual do restaurante. Como posso te ajudar?`,
+    replies: ['📋 Ver cardápio', '📍 Endereço e entrega', '🕐 Horário de funcionamento', '🛒 Fazer pedido']
+  },
+  {
+    trigger: '🏠 Início',
+    in: null,
+    out: `Olá! 👋 Seja bem-vindo ao *Burguer do Zé*! 🍔\n\nSou o assistente virtual do restaurante. Como posso te ajudar?`,
+    replies: ['📋 Ver cardápio', '📍 Endereço e entrega', '🕐 Horário de funcionamento', '🛒 Fazer pedido']
+  },
+];
+
+let step = 0;
+let isTyping = false;
+
+const chatArea = document.getElementById('chatArea');
+const typingEl = document.getElementById('typingIndicator');
+const quickRepliesEl = document.getElementById('quickReplies');
+
+function formatText(text) {
+  return text
+    .replace(/\*(.*?)\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>');
+}
+
+function addMessage(text, type, time) {
+  const msg = document.createElement('div');
+  msg.className = `msg ${type}`;
+
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  bubble.innerHTML = formatText(text);
+
+  const timeEl = document.createElement('div');
+  timeEl.className = 'msg-time';
+  timeEl.innerHTML = type === 'out'
+    ? `${time} <span class="check">✓✓</span>`
+    : time;
+
+  msg.appendChild(bubble);
+  msg.appendChild(timeEl);
+  chatArea.appendChild(msg);
+
+  setTimeout(() => msg.classList.add('visible'), 30);
+  chatArea.scrollTop = chatArea.scrollHeight;
+  return msg;
+}
+
+function showTyping() {
+  typingEl.classList.add('show');
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function hideTyping() {
+  typingEl.classList.remove('show');
+}
+
+function setQuickReplies(replies) {
+  quickRepliesEl.innerHTML = '';
+  replies.forEach(r => {
+    const btn = document.createElement('button');
+    btn.className = 'qr-btn';
+    btn.textContent = r;
+    btn.onclick = () => handleReply(r);
+    quickRepliesEl.appendChild(btn);
+  });
+}
+
+function handleReply(text) {
+  if (isTyping) return;
+
+  const currentStep = conversation.find(s => s.trigger === text);
+  if (!currentStep) return;
+
+  isTyping = true;
+  setQuickReplies([]);
+
+  if (currentStep.in) {
+    addMessage(currentStep.in, 'out', now());
+  }
+
+  setTimeout(() => {
+    showTyping();
+    setTimeout(() => {
+      hideTyping();
+      addMessage(currentStep.out, 'in', now());
+      setQuickReplies(currentStep.replies || []);
+      isTyping = false;
+    }, 1200 + Math.random() * 600);
+  }, 400);
+}
+
+function startDemo() {
+  isTyping = true;
+  setQuickReplies([]);
+  setTimeout(() => {
+    showTyping();
+    setTimeout(() => {
+      hideTyping();
+      const first = conversation[0];
+      addMessage(first.out, 'in', now());
+      setQuickReplies(first.replies || []);
+      isTyping = false;
+    }, 1000);
+  }, 600);
+}
+
+function restartDemo() {
+  chatArea.innerHTML = '<div class="date-divider"><span>Hoje</span></div>';
+  setQuickReplies([]);
+  hideTyping();
+  isTyping = false;
+  startDemo();
+}
+
+startDemo();
+</script>
+</body>
+</html>
